@@ -129,3 +129,7 @@ pip-selfcheck.json
 
 # Some love for the vim users
 .*.sw*
+
+# mongo db foleder
+
+mongo-data/*
