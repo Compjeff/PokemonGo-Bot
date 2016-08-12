@@ -1,12 +1,12 @@
 from pokemongo_bot.base_task import BaseTask
 from pokemongo_bot.worker_result import WorkerResult
+from pokemongo_bot.persistent import persistent_enabled
 
 class MapObjectPersistent(BaseTask):
     SUPPORTED_TASK_API_VERSION = 1
 
     def initialize(self):
         self.last_map_object_time = 0;
-        print self.config
 
     def work(self):
         if not self.bot.last_map_object:
@@ -25,6 +25,9 @@ class MapObjectPersistent(BaseTask):
         if 'map_cells' not in dict:
             return;
 
+        if not persistent_enabled(self.bot):
+            return;
+
         for cell in dict['map_cells']:
             s2_cell_id = cell['s2_cell_id']
             if 'forts' in cell:
@@ -34,11 +37,11 @@ class MapObjectPersistent(BaseTask):
                     if 'type' in fort:
                         if fort['type'] == 1:
                             pass
+            if 'spawn_points' in cell:
+                pass
             if 'catchable_pokemons' in cell:
                 pass
             if 'wild_pokemons' in cell:
                 pass
             if 'nearby_pokemons' in cell:
-                pass
-            if 'spawn_points' in cell:
                 pass
