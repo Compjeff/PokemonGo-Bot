@@ -5,7 +5,7 @@ from mongodb_handler import MongoDBHandler
 
 _handler = None
 
-def persistent_enabled(bot):
+def persistentEnabled(bot):
     global _handler
     if _handler == None:
         if 'persistent' not in bot.config:
@@ -20,4 +20,8 @@ def persistent_enabled(bot):
         else:
             raise ConfigException("Unknown persistent backend {}".format(settings['backend']))
 
-    return _handler.connected()
+    return _handler.connected
+
+def getPersistentHandler():
+    global _handler
+    return _handler
