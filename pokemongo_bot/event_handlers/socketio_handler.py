@@ -24,7 +24,8 @@ class SocketIoHandler(EventHandler):
             'bot:broadcast',
             {
                 'event': event,
-                'account': self.bot.config.username,
+                'account': 'bot',
+                # 'account': self.bot.config.username,
                 'data': data
             }
         )
