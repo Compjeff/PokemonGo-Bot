@@ -21,3 +21,4 @@ from sleep_schedule import SleepSchedule
 from update_live_stats import UpdateLiveStats
 from map_object_persistent import MapObjectPersistent
 from catch_pokemon import CatchPokemon
+from complete_tutorial import CompleteTutorial
