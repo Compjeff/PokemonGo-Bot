@@ -79,7 +79,7 @@ class PokemonOptimizer(BaseTask):
     def open_inventory(self):
         self.family_by_family_id.clear()
 
-        for pokemon in inventory.pokemons(True).all():
+        for pokemon in inventory.pokemons().all():
             family_id = pokemon.first_evolution_id
             setattr(pokemon, "ncp", pokemon.cp_percent)
             setattr(pokemon, "dps", pokemon.moveset.dps)
@@ -89,6 +89,7 @@ class PokemonOptimizer(BaseTask):
             self.family_by_family_id.setdefault(family_id, []).append(pokemon)
 
     def save_web_inventory(self):
+        return
         inventory_items = self.bot.get_inventory()["responses"]["GET_INVENTORY"]["inventory_delta"]["inventory_items"]
         web_inventory = os.path.join(_base_dir, "web", "inventory-%s.json" % self.bot.config.username)
 
@@ -173,7 +174,7 @@ class PokemonOptimizer(BaseTask):
 
     def unique_pokemons(self, l):
         seen = set()
-        return [p for p in l if not (p.id in seen or seen.add(p.id))]
+        return [p for p in l if not (p.pokemon_id in seen or seen.add(p.pokemon_id))]
 
     def get_evolution_plan(self, family_id, family, evolve_best, keep_best):
         candies = inventory.candies().get(family_id).quantity
@@ -266,7 +267,7 @@ class PokemonOptimizer(BaseTask):
 
     def transfer_pokemon(self, pokemon):
         if self.config_transfer and (not self.bot.config.test):
-            response_dict = self.bot.api.release_pokemon(pokemon_id=pokemon.id)
+            response_dict = self.bot.api.release_pokemon(pokemon_id=pokemon.unique_id)
         else:
             response_dict = {"responses": {"RELEASE_POKEMON": {"candy_awarded": 0}}}
 
@@ -285,7 +286,7 @@ class PokemonOptimizer(BaseTask):
             candy = response_dict.get("responses", {}).get("RELEASE_POKEMON", {}).get("candy_awarded", 0)
 
             inventory.candies().get(pokemon.pokemon_id).add(candy)
-            inventory.pokemons().remove(pokemon.id)
+            inventory.pokemons().remove(pokemon.unique_id)
 
             action_delay(self.transfer_wait_min, self.transfer_wait_max)
 
