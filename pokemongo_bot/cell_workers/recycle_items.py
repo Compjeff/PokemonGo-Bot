@@ -8,7 +8,6 @@ from pokemongo_bot.human_behaviour import action_delay
 from pokemongo_bot.services.item_recycle_worker import ItemRecycler
 from pokemongo_bot.tree_config_builder import ConfigException
 from pokemongo_bot.worker_result import WorkerResult
-from pokemongo_bot.inventory import Items
 
 DEFAULT_MIN_EMPTY_SPACE = 6
 
@@ -89,7 +88,7 @@ class RecycleItems(BaseTask):
         return False
 
     def work(self):
-        items_in_bag = Items.get_space_used()
+        items_in_bag = inventory.Items.get_space_used()
         total_bag_space = self.bot.player_data['max_item_storage']
         free_bag_space = total_bag_space - items_in_bag
 
@@ -105,15 +104,15 @@ class RecycleItems(BaseTask):
                     return
 
         self.bot.latest_inventory = None
-        item_count_dict = self.bot.item_inventory_count('all')
+        items = inventory.items()
 
         # build item filter dynamicly if we have total limit
         if "All Balls" in self.items_filter:
             all_balls_limit = self.items_filter.get("All Balls").get("keep", 50)
-            pokeball_count = item_count_dict.get(1, 0)
-            greatball_count = item_count_dict.get(2, 0)
-            ultraball_count = item_count_dict.get(3, 0)
-            masterball_count = item_count_dict.get(4, 0)
+            pokeball_count = items.get(1).count
+            greatball_count = items.get(2).count
+            ultraball_count = items.get(3).count
+            masterball_count = items.get(4).count
 
             if ( pokeball_count + greatball_count + ultraball_count + masterball_count) > all_balls_limit:
                 if ( greatball_count + ultraball_count + masterball_count ) > all_balls_limit:
@@ -139,10 +138,10 @@ class RecycleItems(BaseTask):
 
         if "All Portions" in self.items_filter:
             all_portions_limit = self.items_filter.get("All Portions").get("keep", 50)
-            portion_count = item_count_dict.get(101, 0)
-            super_count = item_count_dict.get(102, 0)
-            hyper_count = item_count_dict.get(103, 0)
-            max_count = item_count_dict.get(104, 0)
+            portion_count = items.get(101).count
+            super_count = items.get(102).count
+            hyper_count = items.get(103).count
+            max_count = items.get(104).count
 
             if ( portion_count + super_count + hyper_count + max_count) > all_portions_limit:
                 if ( super_count + hyper_count + max_count ) > all_portions_limit:
@@ -166,8 +165,10 @@ class RecycleItems(BaseTask):
                     self.items_filter["Portion"] = {"keep":all_portions_limit - super_count - hyper_count - max_count}
                     self.items_filter["101"] = {"keep":all_portions_limit - super_count - hyper_count - max_count}
 
-        for item_id, bag_count in item_count_dict.iteritems():
-            item_name = self.bot.item_list[str(item_id)]
+        for item in items.all():
+            item_id = item.id
+            bag_count = item.count
+            item_name = item.name
             id_filter = self.items_filter.get(item_name, 0)
             id_filter_keep = 0
             if id_filter is not 0:
@@ -176,8 +177,6 @@ class RecycleItems(BaseTask):
                 id_filter = self.items_filter.get(str(item_id), 0)
                 if id_filter is not 0:
                     id_filter_keep = id_filter.get('keep', 20)
-
-            bag_count = self.bot.item_inventory_count(item_id)
 
             if (item_name in self.items_filter or str(item_id) in self.items_filter) and bag_count > id_filter_keep:
                 items_recycle_count = bag_count - id_filter_keep
