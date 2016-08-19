@@ -64,13 +64,7 @@ class RecycleItems(BaseTask):
         :raise: ConfigException: When an item doesn't exist in ../../data/items.json
         """
         item_list = json.load(open(os.path.join(_base_dir, 'data', 'items.json')))
-
         for config_item_name, bag_count in self.items_filter.iteritems():
-            if config_item_name == 'All Balls':
-                continue
-            if config_item_name == 'All Portions':
-                continue
-
             if config_item_name not in item_list.viewvalues():
                 if config_item_name not in item_list:
                     raise ConfigException(
@@ -88,128 +82,6 @@ class RecycleItems(BaseTask):
         return False
 
     def work(self):
-        items_in_bag = inventory.Items.get_space_used()
-        total_bag_space = self.bot.player_data['max_item_storage']
-        free_bag_space = total_bag_space - items_in_bag
-
-        if self.min_empty_space is not None:
-            if free_bag_space >= self.min_empty_space and items_in_bag < total_bag_space:
-                    self.emit_event(
-                        'item_discard_skipped',
-                        formatted="Skipping Recycling of Items. {space} space left in bag.",
-                        data={
-                            'space': free_bag_space
-                        }
-                    )
-                    return
-
-        self.bot.latest_inventory = None
-        items = inventory.items()
-
-        # build item filter dynamicly if we have total limit
-        if "All Balls" in self.items_filter:
-            all_balls_limit = self.items_filter.get("All Balls").get("keep", 50)
-            pokeball_count = items.get(1).count
-            greatball_count = items.get(2).count
-            ultraball_count = items.get(3).count
-            masterball_count = items.get(4).count
-
-            if ( pokeball_count + greatball_count + ultraball_count + masterball_count) > all_balls_limit:
-                if ( greatball_count + ultraball_count + masterball_count ) > all_balls_limit:
-                    self.items_filter["Pokeball"] = {"keep":0}
-                    self.items_filter["1"] = {"keep":0}
-                    if ( ultraball_count + masterball_count ) > all_balls_limit:
-                        self.items_filter["Greatball"] = {"keep":0}
-                        self.items_filter["2"] = {"keep":0}
-                        if masterball_count > all_balls_limit:
-                            self.items_filter["Ultraball"] = {"keep":0}
-                            self.items_filter["3"] = {"keep":0}
-                            self.items_filter["Masterball"] = {"keep":all_balls_limit}
-                            self.items_filter["4"] = {"keep":all_balls_limit}
-                        else:
-                            self.items_filter["Ultraball"] = {"keep":all_balls_limit - masterball_count}
-                            self.items_filter["3"] = {"keep":all_balls_limit - masterball_count}
-                    else:
-                        self.items_filter["Greatball"] = {"keep":all_balls_limit - ultraball_count - masterball_count}
-                        self.items_filter["2"] = {"keep":all_balls_limit - ultraball_count - masterball_count}
-                else:
-                    self.items_filter["Pokeball"] = {"keep":all_balls_limit - greatball_count - ultraball_count - masterball_count}
-                    self.items_filter["1"] = {"keep":all_balls_limit - greatball_count - ultraball_count - masterball_count}
-
-        if "All Portions" in self.items_filter:
-            all_portions_limit = self.items_filter.get("All Portions").get("keep", 50)
-            portion_count = items.get(101).count
-            super_count = items.get(102).count
-            hyper_count = items.get(103).count
-            max_count = items.get(104).count
-
-            if ( portion_count + super_count + hyper_count + max_count) > all_portions_limit:
-                if ( super_count + hyper_count + max_count ) > all_portions_limit:
-                    self.items_filter["Portion"] = {"keep":0}
-                    self.items_filter["101"] = {"keep":0}
-                    if ( hyper_count + max_count ) > all_portions_limit:
-                        self.items_filter["Super Portion"] = {"keep":0}
-                        self.items_filter["102"] = {"keep":0}
-                        if max_count > all_portions_limit:
-                            self.items_filter["Hyper Portion"] = {"keep":0}
-                            self.items_filter["103"] = {"keep":0}
-                            self.items_filter["Max Portion"] = {"keep":all_portions_limit}
-                            self.items_filter["104"] = {"keep":all_portions_limit}
-                        else:
-                            self.items_filter["Hyper Portion"] = {"keep":all_portions_limit - max_count}
-                            self.items_filter["103"] = {"keep":all_portions_limit - max_count}
-                    else:
-                        self.items_filter["Super Portion"] = {"keep":all_portions_limit - hyper_count - max_count}
-                        self.items_filter["102"] = {"keep":all_portions_limit - hyper_count - max_count}
-                else:
-                    self.items_filter["Portion"] = {"keep":all_portions_limit - super_count - hyper_count - max_count}
-                    self.items_filter["101"] = {"keep":all_portions_limit - super_count - hyper_count - max_count}
-
-        for item in items.all():
-            item_id = item.id
-            bag_count = item.count
-            item_name = item.name
-            id_filter = self.items_filter.get(item_name, 0)
-            id_filter_keep = 0
-            if id_filter is not 0:
-                id_filter_keep = id_filter.get('keep', 20)
-            else:
-                id_filter = self.items_filter.get(str(item_id), 0)
-                if id_filter is not 0:
-                    id_filter_keep = id_filter.get('keep', 20)
-
-            if (item_name in self.items_filter or str(item_id) in self.items_filter) and bag_count > id_filter_keep:
-                items_recycle_count = bag_count - id_filter_keep
-                response_dict_recycle = self.send_recycle_item_request(item_id=item_id, count=items_recycle_count)
-                result = response_dict_recycle.get('responses', {}).get('RECYCLE_INVENTORY_ITEM', {}).get('result', 0)
-
-                if result == 1: # Request success
-                    self.emit_event(
-                        'item_discarded',
-                        formatted='Discarded {amount}x {item} (maximum {maximum}).',
-                        data={
-                            'amount': str(items_recycle_count),
-                            'item': item_name,
-                            'maximum': str(id_filter_keep)
-                        }
-                    )
-                else:
-                    self.emit_event(
-                        'item_discard_fail',
-                        formatted="Failed to discard {item}",
-                        data={
-                            'item': item_name
-                        }
-                    )
-
-    def send_recycle_item_request(self, item_id, count):
-        # Example of good request response
-        # {'responses': {'RECYCLE_INVENTORY_ITEM': {'result': 1, 'new_count': 46}}, 'status_code': 1, 'auth_ticket': {'expire_timestamp_ms': 1469306228058L, 'start': '/HycFyfrT4t2yB2Ij+yoi+on778aymMgxY6RQgvrGAfQlNzRuIjpcnDd5dAxmfoTqDQrbz1m2dGqAIhJ+eFapg==', 'end': 'f5NOZ95a843tgzprJo4W7Q=='}, 'request_id': 8145806132888207460L}
-        return self.bot.api.recycle_inventory_item(
-            item_id=item_id,
-            count=count
-        )
-
         """
         Start the process of recycling items if necessary.
         :return: Returns whether or not the task went well
