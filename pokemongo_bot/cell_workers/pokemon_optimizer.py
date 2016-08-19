@@ -328,7 +328,7 @@ class PokemonOptimizer(BaseTask):
 
     def evolve_pokemon(self, pokemon):
         if self.config_evolve and (not self.bot.config.test):
-            response_dict = self.bot.api.evolve_pokemon(pokemon_id=pokemon.id)
+            response_dict = self.bot.api.evolve_pokemon(pokemon_id=pokemon.unique_id)
         else:
             response_dict = {"responses": {"EVOLVE_POKEMON": {"result": 1}}}
 
@@ -355,7 +355,7 @@ class PokemonOptimizer(BaseTask):
 
         if self.config_evolve and (not self.bot.config.test):
             inventory.candies().get(pokemon.pokemon_id).consume(pokemon.evolution_cost - candy)
-            inventory.pokemons().remove(pokemon.id)
+            inventory.pokemons().remove(pokemon.unique_id)
 
             new_pokemon = inventory.Pokemon(evolution)
             inventory.pokemons().add(new_pokemon)
