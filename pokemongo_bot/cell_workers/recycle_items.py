@@ -8,6 +8,7 @@ from pokemongo_bot.human_behaviour import action_delay
 from pokemongo_bot.services.item_recycle_worker import ItemRecycler
 from pokemongo_bot.tree_config_builder import ConfigException
 from pokemongo_bot.worker_result import WorkerResult
+from pokemongo_bot.inventory import Items
 
 DEFAULT_MIN_EMPTY_SPACE = 6
 
@@ -88,7 +89,7 @@ class RecycleItems(BaseTask):
         return False
 
     def work(self):
-        items_in_bag = self.bot.get_inventory_count('item')
+        items_in_bag = Items.get_space_used()
         total_bag_space = self.bot.player_data['max_item_storage']
         free_bag_space = total_bag_space - items_in_bag
 
