@@ -3,13 +3,11 @@ from pokemongo_bot.human_behaviour import sleep
 from pokemongo_bot.inventory import Pokemon
 from pokemongo_bot.item_list import Item
 from pokemongo_bot.base_task import BaseTask
-from pokemongo_bot.datastore import Datastore
 
-class EvolvePokemon(Datastore, BaseTask):
+
+class EvolvePokemon(BaseTask):
     SUPPORTED_TASK_API_VERSION = 1
-    def __init__(self, bot, config):
-        super(EvolvePokemon, self).__init__(bot, config)
-   
+
     def initialize(self):
         self.api = self.bot.api
         self.evolve_all = self.config.get('evolve_all', [])
@@ -48,19 +46,20 @@ class EvolvePokemon(Datastore, BaseTask):
         if self.bot.tick_count is not 1 or not self.use_lucky_egg:
             return True
 
-        lucky_egg_count = self.bot.item_inventory_count(Item.ITEM_LUCKY_EGG.value)
+        lucky_egg = inventory.items().get(Item.ITEM_LUCKY_EGG.value)
 
         # Make sure the user has a lucky egg and skip if not
-        if lucky_egg_count > 0:
+        if lucky_egg.count > 0:
             response_dict_lucky_egg = self.bot.use_lucky_egg()
             if response_dict_lucky_egg:
                 result = response_dict_lucky_egg.get('responses', {}).get('USE_ITEM_XP_BOOST', {}).get('result', 0)
                 if result is 1:  # Request success
+                    lucky_egg.remove(1)
                     self.emit_event(
                         'used_lucky_egg',
                         formatted='Used lucky egg ({amount_left} left).',
                         data={
-                             'amount_left': lucky_egg_count - 1
+                             'amount_left': lucky_egg.count
                         }
                     )
                     return True
@@ -115,8 +114,6 @@ class EvolvePokemon(Datastore, BaseTask):
                     'xp': '?'
                 }
             )
-            with self.bot.database as conn:
-                conn.execute('''INSERT INTO evolve_log (pokemon, iv, cp) VALUES (?, ?, ?)''', (pokemon.name, pokemon.iv, pokemon.cp))
             awarded_candies = response_dict.get('responses', {}).get('EVOLVE_POKEMON', {}).get('candy_awarded', 0)
             inventory.candies().get(pokemon.pokemon_id).consume(pokemon.evolution_cost - awarded_candies)
             inventory.pokemons().remove(pokemon.unique_id)
